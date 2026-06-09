@@ -82,7 +82,7 @@ def _setup_logging_bridge() -> None:
         lib_logger.propagate = False
 
 
-def setup_logger(name: str, level: str = "DEBUG", console: bool = True) -> loguru_logger:
+def setup_logger(name: str, level: str = "DEBUG", console: bool = True) -> loguru.Logger:
     """配置并返回 Loguru logger 实例。
 
     设置文件日志和控制台日志输出：
