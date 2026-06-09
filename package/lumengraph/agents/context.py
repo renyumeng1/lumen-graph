@@ -6,6 +6,17 @@ from typing import Annotated,get_args,get_origin
 
 import uuid
 
+WORKSPACE_AGENTS_PROMPT_MAX_BYTES = 64 * 1024
+
+def _role_can_access(auth:str | None,role:str | None) -> bool:
+    if not auth:
+        return True
+    if auth == "admin":
+        return role in {"admin","superadmin"}
+    if auth == "superadmin":
+        return role == "superadmin"
+    return False
+
 @dataclass(kw_only=True)
 class BaseContext:
     """定义一个基础Context 供各类graph 继承
@@ -28,10 +39,24 @@ class BaseContext:
     )
     
     
-    user_id:str =field(
+    uid:str =field(
         default_factory=lambda: str(uuid.uuid4()),
         metadata={"name":"用户ID","configurable":False,"description":"用来唯一标识一个用户"} 
     )
+
+    run_id:str | None = field(
+        default=None,
+        metadata={"name":"运行 ID","configuarable":False,"hide":True}
+    )
+
+    request_id:str | None = field(
+        default=None,
+        metadata={
+            "name":"请求 ID",
+            "configurable":False,
+            "hide":True
+        }
+        )
     
     
     system_prompt:Annotated[str,{"__template_metadata__":{"kind":"prompt"}}] = field(
@@ -88,6 +113,29 @@ class BaseContext:
             "type": "list",
         },
     )
+
+    
+    summary_threshold: int = field(
+        default=100,
+        metadata={
+            "name": "上下文摘要触发阈值 (KB)",
+            "description": "当上下文大小超过该值时，启用摘要功能以优化上下文使用。单位为 KB，默认值为 100KB。",
+            "type": "number",
+        },
+    )
+
+    model_retry_times:int = field(
+        default=2,
+        metadata={
+            "name":"模型重试次数",
+            "description":"模型调用失败的最大重试次数，默认值为 2",
+            "type":"number",
+            "auth":"admin"
+        }
+    )
+
+
+
     
     subagent_model:Annotated[str,{"__template_metadata__":{"kind":"llm"}}] = field(
         default=sys_config.default_model,
@@ -108,14 +156,7 @@ class BaseContext:
     )
     
     
-    summary_threshold: int = field(
-        default=100,
-        metadata={
-            "name": "上下文摘要触发阈值 (KB)",
-            "description": "当上下文大小超过该值时，启用摘要功能以优化上下文使用。单位为 KB，默认值为 100KB。",
-            "type": "number",
-        },
-    )
+    
     
     @classmethod
     def get_configurable_items(cls):
