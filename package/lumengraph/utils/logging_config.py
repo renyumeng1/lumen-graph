@@ -18,6 +18,7 @@ import sys
 
 
 from loguru import logger as loguru_logger
+import loguru
 from lumengraph.utils.datetime_utils import shanghai_now
 
 SAVE_DIR = "saves"
